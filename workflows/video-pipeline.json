@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "instanceId": "gadgetlab-n8n-cloud",
+    "workflowId": "Tt44DxPbsBFUXXjl",
+    "workflowName": "GadgetLab \u2014 TikTok & YouTube Auto-Ingestion Pipeline",
+    "version": "1.0.0",
+    "description": "Autonomous pipeline: Slack URL trigger \u2192 YouTube/TikTok metadata \u2192 GPT-4o summary \u2192 Google Drive + Obsidian + Slack digest",
+    "tags": ["video", "tiktok", "youtube", "autonomous", "gadgetlab", "ai"],
+    "credentials": {
+      "slack": "SLACK_BOT_TOKEN",
+      "youtube": "YOUTUBE_API_KEY",
+      "openai": "OPENAI_API_KEY",
+      "googleDrive": "GOOGLE_SERVICE_ACCOUNT"
+    },
+    "n8nCloudUrl": "https://gadgetlab.app.n8n.cloud/workflow/Tt44DxPbsBFUXXjl"
+  },
+  "nodes": [
+    { "name": "New Message in #all-gadget-ai", "type": "n8n-nodes-base.slackTrigger", "position": [0, 0] },
+    { "name": "Extract Video URLs", "type": "n8n-nodes-base.code", "position": [200, 0] },
+    { "name": "Split URLs", "type": "n8n-nodes-base.splitInBatches", "position": [400, 0] },
+    { "name": "Route by Platform", "type": "n8n-nodes-base.if", "position": [600, 0] },
+    { "name": "Fetch YouTube Metadata", "type": "n8n-nodes-base.httpRequest", "position": [800, -100] },
+    { "name": "Normalize YouTube Data", "type": "n8n-nodes-base.set", "position": [1000, -100] },
+    { "name": "Fetch TikTok Metadata", "type": "n8n-nodes-base.httpRequest", "position": [800, 100] },
+    { "name": "Normalize TikTok Data", "type": "n8n-nodes-base.set", "position": [1000, 100] },
+    { "name": "Combine Metadata", "type": "n8n-nodes-base.merge", "position": [1200, 0] },
+    { "name": "Generate AI Summary", "type": "@n8n/n8n-nodes-langchain.openAi", "position": [1400, 0] },
+    { "name": "Save to Google Drive", "type": "n8n-nodes-base.googleDrive", "position": [1600, 0] },
+    { "name": "Save to Obsidian", "type": "n8n-nodes-base.httpRequest", "position": [1800, 0] },
+    { "name": "Prepare Slack Digest", "type": "n8n-nodes-base.set", "position": [2000, 0] },
+    { "name": "Post Digest to Slack", "type": "n8n-nodes-base.slack", "position": [2200, 0] },
+    { "name": "On Workflow Error", "type": "n8n-nodes-base.errorTrigger", "position": [0, 300] },
+    { "name": "Send Error Alert", "type": "n8n-nodes-base.slack", "position": [200, 300] }
+  ],
+  "connections": {
+    "New Message in #all-gadget-ai": { "main": [[{ "node": "Extract Video URLs", "type": "main", "index": 0 }]] },
+    "Extract Video URLs": { "main": [[{ "node": "Split URLs", "type": "main", "index": 0 }]] },
+    "Split URLs": { "main": [[{ "node": "Route by Platform", "type": "main", "index": 0 }]] },
+    "Route by Platform": {
+      "main": [
+        [{ "node": "Fetch YouTube Metadata", "type": "main", "index": 0 }],
+        [{ "node": "Fetch TikTok Metadata", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch YouTube Metadata": { "main": [[{ "node": "Normalize YouTube Data", "type": "main", "index": 0 }]] },
+    "Fetch TikTok Metadata": { "main": [[{ "node": "Normalize TikTok Data", "type": "main", "index": 0 }]] },
+    "Normalize YouTube Data": { "main": [[{ "node": "Combine Metadata", "type": "main", "index": 0 }]] },
+    "Normalize TikTok Data": { "main": [[{ "node": "Combine Metadata", "type": "main", "index": 1 }]] },
+    "Combine Metadata": { "main": [[{ "node": "Generate AI Summary", "type": "main", "index": 0 }]] },
+    "Generate AI Summary": { "main": [[{ "node": "Save to Google Drive", "type": "main", "index": 0 }]] },
+    "Save to Google Drive": { "main": [[{ "node": "Save to Obsidian", "type": "main", "index": 0 }]] },
+    "Save to Obsidian": { "main": [[{ "node": "Prepare Slack Digest", "type": "main", "index": 0 }]] },
+    "Prepare Slack Digest": { "main": [[{ "node": "Post Digest to Slack", "type": "main", "index": 0 }]] },
+    "On Workflow Error": { "main": [[{ "node": "Send Error Alert", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "self"
+  }
+}
