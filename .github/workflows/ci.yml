@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate N8N workflow JSON
+        run: |
+          python3 -c "
+import json, sys, os
+for root, dirs, files in os.walk('workflows'):
+    for f in files:
+        if f.endswith('.json'):
+            path = os.path.join(root, f)
+            try:
+                json.load(open(path))
+                print(f'OK: {path}')
+            except Exception as e:
+                print(f'FAIL: {path} - {e}')
+                sys.exit(1)
+"
+
+      - name: Check required files exist
+        run: |
+          for f in README.md docs/runbook-video-ingestion.md workflows/video-pipeline.json; do
+            [ -f "$f" ] || { echo "MISSING: $f"; exit 1; }
+            echo "OK: $f"
+          done
+
+      - name: Slack notify on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_SECURITY_ALERTS }}
+        run: |
+          curl -s -X POST $SLACK_WEBHOOK \
+            -H 'Content-type: application/json' \
+            -d '{"text":"CI FAILURE: gadgetlab-video-pipeline build failed. Check GitHub Actions."}'
